@@ -6,20 +6,17 @@ const app = require('./app');
 
 let isConnected = false;
 
-async function connectToMongoDB() {
-  try {
-    await connect();
-    isConnected = true;
-    console.log('Connected to MongoDB');
-  } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
-  }
-}
-
 // add middleware
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   if (!isConnected) {
-    connectToMongoDB();
+    try {
+      await connect();
+      isConnected = true;
+      console.log('Connected to MongoDB');
+    } catch (error) {
+      console.error('Error connecting to MongoDB:', error);
+      return next(error);
+    }
   }
   next();
 });
