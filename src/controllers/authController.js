@@ -25,8 +25,8 @@ const signRefresh = (user) =>
 const setRefreshCookie = (res, token) => {
   res.cookie('refreshToken', token, {
     httpOnly: true,         // not readable via JS — eliminates XSS risk
-    secure: NODE_ENV === 'production',
-    sameSite: 'Strict',
+    secure: true,
+    sameSite: 'None',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
@@ -154,7 +154,7 @@ const logout = async (req, res, next) => {
       }
     }
 
-    res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'Strict' });
+    res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None' });
     res.json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {
     next(err);
