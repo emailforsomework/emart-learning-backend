@@ -27,7 +27,10 @@ const startSession = async (req, res, next) => {
       topicName,
       subjectName,
       startTime: new Date(),
+      lastTick: new Date(),
       duration,
+      remainingSeconds: duration * 60,
+      isRunning: true,
       status: 'active',
     });
 
@@ -38,7 +41,6 @@ const startSession = async (req, res, next) => {
 };
 
 // ─── GET /api/pomodoro/active ──────────────────────────────────────────────────
-// Enables any device to resume the running timer
 const getActiveSession = async (req, res, next) => {
   try {
     const session = await PomodoroSession.findOne({
@@ -48,11 +50,35 @@ const getActiveSession = async (req, res, next) => {
 
     if (!session) return res.json({ success: true, session: null });
 
-    // Compute elapsed and remaining seconds
-    const elapsed   = Math.floor((Date.now() - new Date(session.startTime)) / 1000);
-    const remaining = Math.max(0, session.duration * 60 - elapsed);
+    let remaining = session.remainingSeconds;
+    if (session.isRunning) {
+      const elapsedSinceLastTick = Math.floor((Date.now() - new Date(session.lastTick)) / 1000);
+      remaining = Math.max(0, session.remainingSeconds - elapsedSinceLastTick);
+    }
 
-    res.json({ success: true, session: { ...session, elapsed, remaining } });
+    res.json({ success: true, session: { ...session, remaining } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── PATCH /api/pomodoro/:id/toggle ───────────────────────────────────────────
+const toggleSession = async (req, res, next) => {
+  try {
+    const { isRunning, remainingSeconds } = req.body;
+    const session = await PomodoroSession.findOne({ _id: req.params.id, userId: req.user.id });
+
+    if (!session) {
+      const err = new Error('Session not found.'); err.statusCode = 404; err.code = 'NOT_FOUND';
+      return next(err);
+    }
+
+    session.isRunning = isRunning;
+    session.remainingSeconds = remainingSeconds;
+    session.lastTick = new Date();
+    await session.save();
+
+    res.json({ success: true, session });
   } catch (err) {
     next(err);
   }
@@ -63,7 +89,7 @@ const completeSession = async (req, res, next) => {
   try {
     const session = await PomodoroSession.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.id },
-      { $set: { status: 'completed' } },
+      { $set: { status: 'completed', isRunning: false, remainingSeconds: 0 } },
       { new: true }
     ).lean();
 
@@ -78,4 +104,4 @@ const completeSession = async (req, res, next) => {
   }
 };
 
-module.exports = { startSession, getActiveSession, completeSession };
+module.exports = { startSession, getActiveSession, toggleSession, completeSession };
