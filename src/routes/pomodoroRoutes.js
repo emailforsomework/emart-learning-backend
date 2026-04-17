@@ -8,6 +8,7 @@ router.use(authenticate);
 
 router.post('/start',          ctrl.startSession);
 router.get('/active',          ctrl.getActiveSession);
+router.patch('/:id/toggle',    ctrl.toggleSession);
 router.patch('/:id/complete',  ctrl.completeSession);
 
 module.exports = router;
