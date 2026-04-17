@@ -24,6 +24,9 @@ const PomodoroSessionSchema = new mongoose.Schema(
     subjectName: { type: String },
     startTime: { type: Date, required: true },
     duration: { type: Number, default: 25 }, // planned minutes (25 = standard pomodoro)
+    isRunning: { type: Boolean, default: true },
+    remainingSeconds: { type: Number },
+    lastTick: { type: Date, default: Date.now },
     status: {
       type: String,
       enum: ['active', 'completed', 'abandoned'],
